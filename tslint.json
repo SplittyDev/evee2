@@ -1,3 +1,6 @@
 {
-  "extends": "tslint:latest"
+  "extends": "tslint:latest",
+  "rules": {
+    "no-unused-variable": [true, {"ignore-pattern": "^internal_*"}]
+  }
 }
