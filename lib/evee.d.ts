@@ -11,10 +11,10 @@ export interface IEventHolder {
     items: Array<IEvent>;
 }
 export declare class Evee {
-    private debug;
     private gid;
     private holders;
-    constructor(debug?: boolean);
+    constructor();
     on(name: string, action: IEventHandler): IEvent;
+    drop(event: string | IEvent): void;
     private internal_get_holders();
 }

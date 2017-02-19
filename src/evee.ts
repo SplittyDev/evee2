@@ -66,17 +66,6 @@ export interface IEventHolder {
 
 export class Evee {
   /**
-   * Whether debug mode is enabled.
-   * In debug mode, Evee does additional sanity checks
-   * on the arguments passed to it.
-   *
-   * @private
-   * @type {boolean}
-   * @memberOf Evee
-   */
-  private debug: boolean;
-
-  /**
    * The global event identifier.
    * Used internally to identify an event.
    *
@@ -98,12 +87,9 @@ export class Evee {
   /**
    * Creates an instance of Evee.
    *
-   * @param {boolean} [debug=false]
-   *
    * @memberOf Evee
    */
-  constructor(debug: boolean = false) {
-    this.debug = debug;
+  constructor() {
     this.gid = 0;
     this.holders = [];
   }
@@ -118,47 +104,76 @@ export class Evee {
    * @memberOf Evee
    */
   public on(name: string, action: IEventHandler): IEvent {
-
-    // Sanity checks.
-    if (this.debug) {
-      if (name.constructor !== String) {
-        throw new TypeError("name has to be of type <String>.");
-      }
-      if (action.constructor !== Function) {
-        throw new TypeError("action has to be of type <Function>.");
-      }
-    }
-
     // Create the event.
     let event = <IEvent> {
       action: action,
       id: this.gid++,
       name: name,
     };
-
     // Try pushing the event to its holder.
     for (let holderIndex = 0; holderIndex < this.holders.length; holderIndex++) {
       let items = this.holders[holderIndex];
       if (items.name === name) {
         items.items.push(event);
-        // Return early to reduce unnecessary iterations.
+        // Return early to avoid unnecessary iterations.
         return event;
       }
     }
-
     // There is no holder yet, so create one.
     this.holders.push(<IEventHolder> {
       items: [event],
       name: name,
     });
-
     // Return the event.
     return event;
   }
 
   /**
+   * Drops an event subscription.
+   *
+   * If a `string` is passed, all events with that name are dropped.
+   * If an `IEvent` is passed, only that particular event is dropped.
+   *
+   * @param {(string | IEvent)} event
+   *
+   * @memberOf Evee
+   */
+  public drop(event: string | IEvent): void {
+    if (event.constructor === String) {
+      let eventName = <string> event;
+      // The event is a string, drop all events with that name.
+      for (let holderIndex = 0; holderIndex < this.holders.length; holderIndex++) {
+        let holder = this.holders[holderIndex];
+        if (holder.name === eventName) {
+          // Drop all events in the holder.
+          holder.items = [];
+          // Return early to avoid unnecessary iterations.
+          return;
+        }
+      }
+    } else {
+      // Assume that the event acts as an IEvent.
+      let eventObject = <IEvent> event;
+      for (let holderIndex = 0; holderIndex < this.holders.length; holderIndex++) {
+        let holder = this.holders[holderIndex];
+        if (holder.name === eventObject.name) {
+          for (let eventIndex = 0; eventIndex < holder.items.length; eventIndex++) {
+            let currentEvent = holder.items[eventIndex];
+            if (currentEvent.id === eventObject.id) {
+              // Remove the event from the holder.
+              holder.items.splice(eventIndex, 1);
+              // Return early to avoid unnecessary iterations.
+              return;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Retrieves the currently used holders.
-   * ONLY USE THIS FOR TESTING.
+   * ONLY USED FOR TESTING.
    *
    * @private
    * @returns {Array<IEventHolder>}
